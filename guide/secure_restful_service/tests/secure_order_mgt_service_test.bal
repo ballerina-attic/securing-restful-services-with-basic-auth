@@ -76,11 +76,11 @@ function testResourceFindOrderUnauthenticated() {
     // Send 'GET' request and obtain the response.
     http:Response response = check clientEPUnauthenticated -> get("/order/100500", request);
     // Expected response code is 500.
-    test:assertEquals(response.statusCode, 500,
+    test:assertEquals(response.statusCode, 404,
         msg = "findOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
-    string resPayload = check response.getStringPayload();
-    test:assertEquals(resPayload, "call failed", msg = "Response mismatch!");
+    json resPayload = check response.getJsonPayload();
+    test:assertEquals(resPayload.toString(), "Order : 100500 cannot be found.", msg = "Response mismatch!");
 }
 
 @test:Config {

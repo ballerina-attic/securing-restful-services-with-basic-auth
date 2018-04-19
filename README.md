@@ -37,18 +37,19 @@ The following figure illustrates all the functionalities of the OrderMgt RESTful
 
 - We can get started with a Ballerina service; 'OrderMgtService', which is the RESTful service that serves the order management request. We will look at securing multiple resources exposed by OrderMgtService to match with the different security requirements.
 
-- Although the language allows you to have any package structure, use the following package structure for this project to follow this guide.
+- Although the language allows you to have any package structure, use the following package structure for this project to follow this guide. The root directory will be denoted by `SAMPLE_ROOT` in the context of this README.
 
 ```
 secure-restful-service
-  └── src
-      └── secure_restful_service
+  └── guide
+      └── secure-restful_service
           ├── secure_order_mgt_service.bal
           └── test
-              └── secure_order_mgt_service_test.bal          
+              └── secure_order_mgt_service_test.bal 
+          └── ballerina.conf    
 ```
 
-- Once you created your package structure, go to the sample src directory and run the following command to initialize your Ballerina project.
+- Once you created your package structure, go to the <SAMPLE_ROOT>/guide directory and run the following command to initialize your Ballerina project.
 
 ```bash
    $ballerina init
@@ -64,7 +65,7 @@ package secure_restful_service;
 
 import ballerina/http;
 
-endpoint http:APIListener listener {
+endpoint http:SecureListener listener {
     port:9090
 };
 
@@ -74,36 +75,9 @@ map<json> ordersMap;
 
 @Description {value:"RESTful service."}
 @http:ServiceConfig {
-    basePath:"/ordermgt",
-    authConfig:{
-        authentication: { enabled: true }
-    }
+    basePath:"/ordermgt"
 }
 service<http:Service> order_mgt bind listener {
-
-    @Description {value:"Resource that handles the HTTP GET requests that are directed
-    to a specific order using path '/orders/<orderID>'"}
-    @http:ResourceConfig {
-        methods:["GET"],
-        path:"/order/{orderId}",
-        authConfig:{
-            authentication: { enabled: false }
-        }
-    }
-    findOrder(endpoint client, http:Request req, string orderId) {
-        // Find the requested order from the map and retrieve it in JSON format.
-        json? payload = ordersMap[orderId];
-        http:Response response;
-        if (payload == null) {
-            payload = "Order : " + orderId + " cannot be found.";
-        }
-
-        // Set the JSON payload in the outgoing response message.
-        response.setJsonPayload(payload);
-
-        // Send response to the client.
-        _ = client -> respond(response);
-    }
 
     @Description {value:"Resource that handles the HTTP POST requests that are directed
      to the path '/orders' to create a new Order."}
@@ -111,7 +85,7 @@ service<http:Service> order_mgt bind listener {
         methods:["POST"],
         path:"/order",
         authConfig:{
-            scopes:["add"]
+            scopes:["add_order"]
         }
     }
     addOrder(endpoint client, http:Request req) {
@@ -140,7 +114,7 @@ service<http:Service> order_mgt bind listener {
         methods:["PUT"],
         path:"/order/{orderId}",
         authConfig:{
-            scopes:["update"]
+            scopes:["update_order"]
         }
     }
     updateOrder(endpoint client, http:Request req, string orderId) {
@@ -171,7 +145,7 @@ service<http:Service> order_mgt bind listener {
         methods:["DELETE"],
         path:"/order/{orderId}",
         authConfig:{
-            scopes:["cancel"]
+            scopes:["cancel_order"]
         }
     }
     cancelOrder(endpoint client, http:Request req, string orderId) {
@@ -186,12 +160,36 @@ service<http:Service> order_mgt bind listener {
         // Send response to the client.
         _ = client -> respond(response);
     }
+    
+    @Description {value:"Resource that handles the HTTP GET requests that are directed
+    to a specific order using path '/orders/<orderID>'"}
+    @http:ResourceConfig {
+        methods:["GET"],
+        path:"/order/{orderId}",
+        authConfig:{
+            authentication: { enabled: false }
+        }
+    }
+    findOrder(endpoint client, http:Request req, string orderId) {
+        // Find the requested order from the map and retrieve it in JSON format.
+        json? payload = ordersMap[orderId];
+        http:Response response;
+        if (payload == null) {
+            payload = "Order : " + orderId + " cannot be found.";
+        }
+    
+        // Set the JSON payload in the outgoing response message.
+        response.setJsonPayload(payload);
+    
+        // Send response to the client.
+        _ = client -> respond(response);
+    }
 }
 
 ```
-- Ballerina uses 'scope' as the way of expressing authorization. Multiple scopes can be assigned to a user, and scopes can then be validated while enforcing authorization. In order to express that certain service or resources require a scope, we have used the `scopes` annotation attribute. According to the `authConfig` of the service, in order to invoke `addOrder` function, the user should have 'add' scope, whereas to invoke `updateOrder` and `cancelOrder` user should have 'update' and 'cancel' scopes respectively.
+- Ballerina uses 'scope' as the way of expressing authorization. Multiple scopes can be assigned to a user, and scopes can then be validated while enforcing authorization. In order to express that certain service or resources require a scope, we have used the `scopes` annotation attribute. According to the `authConfig` of the service, in order to invoke `addOrder` function, the user should have 'add_order' scope, whereas to invoke `updateOrder` and `cancelOrder` user should have 'update_order' and 'cancel_order' scopes respectively.
 
-- User details that should be used in authentication and authorization checks need to be configured in ballerina.conf file. For this guide we will use the following configuration, which creates two users. The 'counter' user only has 'add' scope, whereas the 'admin' user has 'add', 'update' and 'cancel' scopes.
+- User details that should be used in authentication and authorization checks need to be configured in ballerina.conf file. For this guide we will use the following configuration, which creates two users. The 'counter' user only has 'add_order' scope, whereas the 'admin' user has 'add_order', 'update_order' and 'cancel_order' scopes.
 
 ##### ballerina.conf
 ```
@@ -199,15 +197,14 @@ service<http:Service> order_mgt bind listener {
 
 ["b7a.users.counter"]
 password="password"
-scopes="add"
+scopes="add_order"
 
 ["b7a.users.admin"]
 password="password"
-scopes="add,update,cancel"
+scopes="add_order,update_order,cancel_order"
 
 ```
-
-- With that we've completed securing the OrderMgtService.
+- Note that Its possible to encrypt the password entries using `ballerina encrypt` command. With this we've completed securing the OrderMgtService using basic authentication.
 
 
 ## Testing
@@ -216,13 +213,14 @@ scopes="add,update,cancel"
 
 You can run the RESTful service that you developed above, in your local environment. You need to have the Ballerina installation in you local machine and simply point to the <ballerina>/bin/ballerina binary to execute all the following steps.  
 
-1. As the first step you can build a Ballerina executable archive (.balx) of the service that we developed above, using the following command. It points to the directory in which the service we developed above located and it will create an executable binary out of that. Navigate to the `<SAMPLE_ROOT>/src/` folder and run the following command.
+1. As the first step you can build a Ballerina executable archive (.balx) of the service that we developed above, 
+using the following command. It points to the directory in which the service we developed above located and it will create an executable binary out of that. Navigate to the `<SAMPLE_ROOT>/guide/` folder and run the following command.
 
 ```
 $ballerina build secure_restful_service
 ```
 
-2. Once the secure_restful_service.balx is created inside the target folder, you can run that with the following command.
+2. Once the secure_order_mgt_service.balx is created inside the target folder, you can run that with the following command.
 
 ```
 $ballerina run target/secure_restful_service.balx
@@ -295,7 +293,7 @@ request failed: Authentication failure
 
 **Update Order - Authenticating as 'counter' user**
 
-Authorization check for `updateOrder` operation requires the 'update' scope. The 'counter' user only has 'add' scope. Therefore, the following request will fail.
+Authorization check for `updateOrder` operation requires the 'update_order' scope. The 'counter' user only has 'add_order' scope. Therefore, the following request will fail.
 
 ```
 curl -X PUT -u counter:password -d '{ "Order": {"Name": "XYZ", "Description": "Updated order."}}' \
@@ -324,16 +322,16 @@ Output:
 
 ### Writing unit tests
 
-In Ballerina, the unit test cases should be in the same package inside a folder named as 'test'. The naming convention should be as follows,
+In Ballerina, the unit test cases should be in the same package inside a folder named as 'tests'. The naming convention should be as follows,
 
 * Test functions should contain test prefix.
   * e.g.: testResourceAddOrder()
 
 This guide contains unit test cases for each resource available in the 'order_mgt_service.bal'.
 
-To run the unit tests, go to the sample src directory and run the following command.
+To run the unit tests, navigate to the `<SAMPLE_ROOT>/guide/` directory and run the following command.
 ```bash
-   $ballerina test
+   $ballerina test --config secure_restful_service/ballerina.conf
 ```
 
 To check the implementation of the test file, refer to the [secure_order_mgt_service_test.bal](https://github.com/ballerina-guides/securing-restful-services/blob/master/src/secure_restful_service/test/secure_order_mgt_service_test.bal).
