@@ -28,7 +28,7 @@ import ballerinax/kubernetes;
 //    name:"ballerina-guides-secure-restful-service"
 //}
 
-endpoint http:APIListener listener {
+endpoint http:SecureListener listener {
     port:9090
 };
 
@@ -38,36 +38,9 @@ map<json> ordersMap;
 
 @Description {value:"RESTful service."}
 @http:ServiceConfig {
-    basePath:"/ordermgt",
-    authConfig:{
-        authentication: { enabled: true }
-    }
+    basePath:"/ordermgt"
 }
 service<http:Service> order_mgt bind listener {
-
-    @Description {value:"Resource that handles the HTTP GET requests that are directed
-    to a specific order using path '/orders/<orderID>'"}
-    @http:ResourceConfig {
-        methods:["GET"],
-        path:"/order/{orderId}",
-        authConfig:{
-            authentication: { enabled: false }
-        }
-    }
-    findOrder(endpoint client, http:Request req, string orderId) {
-        // Find the requested order from the map and retrieve it in JSON format.
-        json? payload = ordersMap[orderId];
-        http:Response response;
-        if (payload == null) {
-            payload = "Order : " + orderId + " cannot be found.";
-        }
-
-        // Set the JSON payload in the outgoing response message.
-        response.setJsonPayload(payload);
-
-        // Send response to the client.
-        _ = client -> respond(response);
-    }
 
     @Description {value:"Resource that handles the HTTP POST requests that are directed
      to the path '/orders' to create a new Order."}
@@ -75,7 +48,7 @@ service<http:Service> order_mgt bind listener {
         methods:["POST"],
         path:"/order",
         authConfig:{
-            scopes:["add"]
+            scopes:["add_order"]
         }
     }
     addOrder(endpoint client, http:Request req) {
@@ -104,7 +77,7 @@ service<http:Service> order_mgt bind listener {
         methods:["PUT"],
         path:"/order/{orderId}",
         authConfig:{
-            scopes:["update"]
+            scopes:["update_order"]
         }
     }
     updateOrder(endpoint client, http:Request req, string orderId) {
@@ -135,7 +108,7 @@ service<http:Service> order_mgt bind listener {
         methods:["DELETE"],
         path:"/order/{orderId}",
         authConfig:{
-            scopes:["cancel"]
+            scopes:["cancel_order"]
         }
     }
     cancelOrder(endpoint client, http:Request req, string orderId) {
@@ -145,6 +118,33 @@ service<http:Service> order_mgt bind listener {
 
         json payload = "Order : " + orderId + " removed.";
         // Set a generated payload with order status.
+        response.setJsonPayload(payload);
+
+        // Send response to the client.
+        _ = client -> respond(response);
+    }
+
+    @Description {value:"Resource that handles the HTTP GET requests that are directed
+    to a specific order using path '/orders/<orderID>'"}
+    @http:ResourceConfig {
+        methods:["GET"],
+        path:"/order/{orderId}",
+        authConfig:{
+            authentication: { enabled: false }
+        }
+    }
+    findOrder(endpoint client, http:Request req, string orderId) {
+        // Find the requested order from the map and retrieve it in JSON format.
+        http:Response response;
+        json payload;
+        if (ordersMap.hasKey(orderId)) {
+            payload = ordersMap[orderId];
+        } else {
+            response.statusCode = 404;
+            payload = "Order : " + orderId + " cannot be found.";
+        }
+
+        // Set the JSON payload in the outgoing response message.
         response.setJsonPayload(payload);
 
         // Send response to the client.
