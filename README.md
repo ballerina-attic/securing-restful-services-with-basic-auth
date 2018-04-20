@@ -367,7 +367,7 @@ import ballerinax/docker;
     name:"secure_restful_service",
     tag:"v1.0"
 }
-
+@docker:Expose{}
 endpoint http:Listener listener {
     port:9090
 };
