@@ -1,5 +1,3 @@
-package secure_restful_service;
-
 import ballerina/http;
 import ballerinax/docker;
 import ballerinax/kubernetes;
@@ -28,8 +26,13 @@ import ballerinax/kubernetes;
 //    name:"ballerina-guides-secure-restful-service"
 //}
 
+http:AuthProvider basicAuthProvider = {
+    scheme:"basic",
+    authProvider:"config"
+};
 endpoint http:SecureListener listener {
-    port:9090
+    port:9090,
+    authProviders:[basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
