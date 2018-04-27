@@ -2,30 +2,6 @@ import ballerina/http;
 import ballerinax/docker;
 import ballerinax/kubernetes;
 
-//@docker:Config {
-//    registry:"ballerina.guides.io",
-//    name:"secure_restful_service",
-//    tag:"v1.0"
-//}
-//
-//@docker:Expose{}
-
-//@kubernetes:Ingress {
-//    hostname:"ballerina.guides.io",
-//    name:"ballerina-guides-secure-restful-service",
-//    path:"/"
-//}
-//
-//@kubernetes:Service {
-//    serviceType:"NodePort",
-//    name:"ballerina-guides-secure-restful-service"
-//}
-//
-//@kubernetes:Deployment {
-//    image:"ballerina.guides.io/secure_restful_service:v1.0",
-//    name:"ballerina-guides-secure-restful-service"
-//}
-
 http:AuthProvider basicAuthProvider = {
     scheme:"basic",
     authProvider:"config"

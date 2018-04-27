@@ -6,7 +6,7 @@ The following are the sections available in this guide.
 
 - [What you'll build](#what-youll-build)
 - [Prerequisites](#prerequisites)
-- [Developing the service](#developing-the-service)
+- [Implementation](#implementation)
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Observability](#observability)
@@ -33,40 +33,47 @@ The following figure illustrates all the functionalities of the OrderMgt RESTful
 - Ballerina IDE plugins ([IntelliJ IDEA](https://plugins.jetbrains.com/plugin/9520-ballerina), [VSCode](https://marketplace.visualstudio.com/items?itemName=WSO2.Ballerina), [Atom](https://atom.io/packages/language-ballerina))
 - [Docker](https://docs.docker.com/engine/installation/)
 
-## Developing the service
+## Implementation
+> If you want to skip the basics, you can download the git repo and directly move to the "Testing" section by skipping  "Implementation" section.
 
-- We can get started with a Ballerina service; 'OrderMgtService', which is the RESTful service that serves the order management request. We will look at securing multiple resources exposed by OrderMgtService to match with the different security requirements.
+### Create the project structure
 
-- Although the language allows you to have any package structure, use the following package structure for this project to follow this guide. The root directory will be denoted by `SAMPLE_ROOT` in the context of this README.
-
+Ballerina is a complete programming language that can have any custom project structure that you wish. Although the language allows you to have any package structure, use the following package structure for this project to follow this guide.
 ```
-secure-restful-service
+securing-restful-services-with-basic-auth
   └── guide
       └── secure-restful_service
           ├── secure_order_mgt_service.bal
           └── test
-              └── secure_order_mgt_service_test.bal 
+              └── secure_order_mgt_service_test.bal
           └── ballerina.conf    
 ```
 
-- Once you created your package structure, go to the <SAMPLE_ROOT>/guide directory and run the following command to initialize your Ballerina project.
+- Create the above directories in your local machine and also create empty `.bal` files.
 
+- Then open the terminal and navigate to `securing-restful-services-with-basic-auth/guide` and run Ballerina project initializing toolkit.
 ```bash
-   $ballerina init
+   $ ballerina init
 ```
+### Developing the RESTful web service
 
-  The above command will initialize the project with a `Ballerina.toml` file and `.ballerina` implementation directory that contain a list of packages in the current directory.
+- We can get started with a Ballerina service; 'OrderMgtService', which is the RESTful service that serves the order management request. We will look at securing multiple resources exposed by OrderMgtService to match with the different security requirements.
 
 - Add the following content to your Ballerina service, which is the service created in "RESTful Service" Ballerina by Guide, but with authentication and authorization related annotation attributes added to the service and resource configuration. `authentication` is enabled in `authConfig` attribute of `ServiceConfig`. Therefore, authentication will be enforced on all the resources of the service. However, since we have overridden the `authentication` enabled status to 'false' for `findOrder` functionality, authentication will not be enforced for `findOrder`.
 
-##### secure_order_mgt_service.bal
+##### Skeleton code for secure_order_mgt_service.bal
 ```ballerina
-package secure_restful_service;
-
 import ballerina/http;
+import ballerinax/docker;
+import ballerinax/kubernetes;
 
+http:AuthProvider basicAuthProvider = {
+    scheme:"basic",
+    authProvider:"config"
+};
 endpoint http:SecureListener listener {
-    port:9090
+    port:9090,
+    authProviders:[basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -90,7 +97,7 @@ service<http:Service> order_mgt bind listener {
     }
     addOrder(endpoint client, http:Request req) {
         json orderReq = check req.getJsonPayload();
-        string orderId = orderReq.Order.ID.toString() but { () => "" };
+        string orderId = orderReq.Order.ID.toString();
         ordersMap[orderId] = orderReq;
 
         // Create response message.
@@ -120,7 +127,7 @@ service<http:Service> order_mgt bind listener {
     updateOrder(endpoint client, http:Request req, string orderId) {
         json updatedOrder = check req.getJsonPayload();
 
-        // Find the order that needs to be updated and retrieve in JSON format.
+        // Find the order that needs to be updated and retrieve it in JSON format.
         json existingOrder = ordersMap[orderId];
 
         // Updating existing order with the attributes of the updated order.
@@ -160,7 +167,7 @@ service<http:Service> order_mgt bind listener {
         // Send response to the client.
         _ = client -> respond(response);
     }
-    
+
     @Description {value:"Resource that handles the HTTP GET requests that are directed
     to a specific order using path '/orders/<orderID>'"}
     @http:ResourceConfig {
@@ -172,15 +179,18 @@ service<http:Service> order_mgt bind listener {
     }
     findOrder(endpoint client, http:Request req, string orderId) {
         // Find the requested order from the map and retrieve it in JSON format.
-        json? payload = ordersMap[orderId];
         http:Response response;
-        if (payload == null) {
+        json payload;
+        if (ordersMap.hasKey(orderId)) {
+            payload = ordersMap[orderId];
+        } else {
+            response.statusCode = 404;
             payload = "Order : " + orderId + " cannot be found.";
         }
-    
+
         // Set the JSON payload in the outgoing response message.
         response.setJsonPayload(payload);
-    
+
         // Send response to the client.
         _ = client -> respond(response);
     }
@@ -206,36 +216,20 @@ scopes="add_order,update_order,cancel_order"
 ```
 - Note that Its possible to encrypt the password entries using `ballerina encrypt` command. With this we've completed securing the OrderMgtService using basic authentication.
 
-
 ## Testing
-
 ### Invoking the RESTful service
 
-You can run the RESTful service that you developed above, in your local environment. You need to have the Ballerina installation in you local machine and simply point to the <ballerina>/bin/ballerina binary to execute all the following steps.  
-
-1. As the first step you can build a Ballerina executable archive (.balx) of the service that we developed above, 
-using the following command. It points to the directory in which the service we developed above located and it will create an executable binary out of that. Navigate to the `<SAMPLE_ROOT>/guide/` folder and run the following command.
+You can run the RESTful service that you developed above, in your local environment. Open your terminal and navigate to `securing-restful-services-with-basic-auth/guide`, and execute the following command.
+```
+$ ballerina run secure_restful_service
+```
+The successful execution of the service should show us the following output.
 
 ```
-$ballerina build secure_restful_service
+ballerina: initiating service(s) in 'secure_restful_service'
+ballerina: started HTTP/WS endpoint 0.0.0.0:9090
 ```
-
-2. Once the secure_order_mgt_service.balx is created inside the target folder, you can run that with the following command.
-
-```
-$ballerina run target/secure_restful_service.balx
-```
-
-3. The successful execution of the service should show us the following output.
-
-```
-$ ballerina run target/secure_restful_service.balx
-
-ballerina: deploying service(s) in 'target/secure_restful_service.balx'
-ballerina: started HTTP/WS server connector 0.0.0.0:9090
-```
-
-4. You can test authentication and authorization checks being enforced on different functions of the OrderMgt RESTFul service by sending HTTP request. For example, we have used the curl commands to test each operation of OrderMgtService as follows.
+You can test authentication and authorization checks being enforced on different functions of the OrderMgt RESTFul service by sending HTTP request. For example, we have used the curl commands to test each operation of OrderMgtService as follows.
 
 **Create Order - Without authentication**
 
@@ -322,54 +316,67 @@ Output:
 
 ### Writing unit tests
 
-In Ballerina, the unit test cases should be in the same package inside a folder named as 'tests'. The naming convention should be as follows,
-
-* Test functions should contain test prefix.
-  * e.g.: testResourceAddOrder()
-
-This guide contains unit test cases for each resource available in the 'order_mgt_service.bal'.
-
-To run the unit tests, navigate to the `<SAMPLE_ROOT>/guide/` directory and run the following command.
-```bash
-   $ballerina test --config secure_restful_service/ballerina.conf
+In Ballerina, the unit test cases should be in the same package inside a folder named as 'tests'.  When writing the test functions the below convention should be followed.
+- Test functions should be annotated with `@test:Config`. See the below example.
+```ballerina
+   @test:Config
+   function testResourceAddOrder() {
 ```
 
-To check the implementation of the test file, refer to the [secure_order_mgt_service_test.bal](https://github.com/ballerina-guides/securing-restful-services/blob/master/src/secure_restful_service/test/secure_order_mgt_service_test.bal).
+This guide contains unit test cases for each method available in the 'order_mgt_service' implemented above.
+
+To run the unit tests, open your terminal and navigate to `securing-restful-services-with-basic-auth/guide`, and run the following command.
+```bash
+$ ballerina test --config secure_restful_service/ballerina.conf
+```
+
+To check the implementation of the test file, refer to the [secure_order_mgt_service_test.bal](https://github.com/ballerina-guides/securing-restful-services-with-basic-auth/blob/master/guide/secure_restful_service/tests/secure_order_mgt_service_test.bal).
 
 ## Deployment
-
 Once you are done with the development, you can deploy the service using any of the methods that we listed below.
 
 ### Deploying locally
-You can deploy the RESTful service that you developed above, in your local environment. You can use the Ballerina executable archive (.balx) archive that we created above and run it in your local environment as follows.
 
+- As the first step you can build a Ballerina executable archive (.balx) of the service that we developed above, using the following command. It points to the directory in which the service we developed above located and it will create an executable binary out of that. Navigate to `securing-restful-services-with-basic-auth/guide` and run the following command.
 ```
-$ballerina run target/secure_restful_service.balx
+   $ ballerina build secure_restful_service
 ```
 
+- Once the secure_restful_service.balx is created inside the target folder, you can run that with the following command.
+```
+   $ ballerina run target/secure_restful_service.balx --config ../secure_restful_service/ballerina.conf
+```
+
+- The successful execution of the service will show us the following output.
+```
+ballerina: initiating service(s) in 'secure_restful_service.balx'
+ballerina: started HTTP/WS endpoint 0.0.0.0:9090
+```
 ### Deploying on Docker
 
+You can run the service that we developed above as a docker container. As Ballerina platform includes [Ballerina_Docker_Extension](https://github.com/ballerinax/docker), which offers native support for running ballerina programs on containers, you just need to put the corresponding docker annotations on your service code.
 
-You can run the service that we developed above as a docker container. As Ballerina platform offers native support for running ballerina programs on
-containers, you just need to put the corresponding docker annotations on your service code.
-
-- In our OrderMgtService, we need to import  `` import ballerinax/docker; `` and use the annotation `` @docker:Config `` as shown below to enable docker image generation during the build time.
+- In our order_mgt_service, we need to import  `ballerinax/docker` and use the annotation `@docker:Config` as shown below to enable docker image generation during the build time.
 
 ##### secure_order_mgt_service.bal
 ```ballerina
-package secure_restful_service;
-
 import ballerina/http;
 import ballerinax/docker;
+
+http:AuthProvider basicAuthProvider = {
+    scheme:"basic",
+    authProvider:"config"
+};
 
 @docker:Config {
     registry:"ballerina.guides.io",
     name:"secure_restful_service",
     tag:"v1.0"
 }
-
-endpoint http:Listener listener {
-    port:9090
+@docker:Expose{}
+endpoint http:SecureListener listener {
+    port:9090,
+    authProviders:[basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -377,12 +384,22 @@ endpoint http:Listener listener {
 map<json> ordersMap;
 
 @Description {value:"RESTful service."}
-@http:ServiceConfig {basePath:"/ordermgt"}
+@http:ServiceConfig {
+    basePath:"/ordermgt"
+}
+
+@docker:CopyFiles {
+    files:[
+        {source:"/home/securing-restful-services-with-basic-auth/guide/secure_restful_service/ballerina.conf", target:"/home/ballerina/conf/ballerina.conf",
+            isBallerinaConf:true}
+    ]
+}
 service<http:Service> order_mgt bind listener {
 ```
+- `@docker:Config` annotation is used to provide the basic docker image configurations for the sample. `@docker:Expose {}` is used to expose the port and `@docker:CopyFiles` is used to copy config files.
 
 - Now you can build a Ballerina executable archive (.balx) of the service that we developed above, using the following command. It points to the service file that we developed above and it will create an executable binary out of that.
-This will also create the corresponding docker image using the docker annotations that you have configured above. Navigate to the `<SAMPLE_ROOT>/src/` folder and run the following command.  
+This will also create the corresponding docker image using the docker annotations that you have configured above. Navigate to the `<SAMPLE_ROOT>/guide/` folder and run the following command.  
 
 ```
    $ballerina build secure_restful_service
@@ -403,45 +420,44 @@ This will also create the corresponding docker image using the docker annotation
 - You can access the service using the same curl commands that we've used above.
 
 ```
-   curl -v -X POST -d '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
-   "http://localhost:9090/ordermgt/order" -H "Content-Type:application/json"    
+curl -v -X POST -u counter:password -d \
+'{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
+"http://localhost:9090/ordermgt/order" -H "Content-Type:application/json"  
 ```
 
 
 ### Deploying on Kubernetes
 
-- You can run the service that we developed above, on Kubernetes. The Ballerina language offers native support for running a ballerina programs on Kubernetes,
-with the use of Kubernetes annotations that you can include as part of your service code. Also, it will take care of the creation of the docker images.
-So you don't need to explicitly create docker images prior to deploying it on Kubernetes.   
+- You can run the service that we developed above, on Kubernetes. The Ballerina language offers native support for running a ballerina programs on Kubernetes, with the use of Kubernetes annotations that you can include as part of your service code. Also, it will take care of the creation of the docker images. So you don't need to explicitly create docker images prior to deploying it on Kubernetes. Refer to [Ballerina_Kubernetes_Extension](https://github.com/ballerinax/kubernetes) for more details and samples on Kubernetes deployment with Ballerina. You can also find details on using Minikube to deploy Ballerina programs.
 
-- We need to import `` import ballerinax/kubernetes; `` and use `` @kubernetes `` annotations as shown below to enable kubernetes deployment for the service we developed above.
+- Let's now see how we can deploy our `secure_order_mgt_service` on Kubernetes.
 
-##### order_mgt_service.bal
+- First we need to import `ballerinax/kubernetes` and use `@kubernetes` annotations as shown below to enable kubernetes deployment for the service we developed above.
+
+##### secure_order_mgt_service.bal
 
 ```ballerina
-package secure_restful_service;
-
 import ballerina/http;
 import ballerinax/kubernetes;
+
+
+http:AuthProvider basicAuthProvider = {
+    scheme:"basic",
+    authProvider:"config"
+};
 
 @kubernetes:Ingress {
     hostname:"ballerina.guides.io",
     name:"ballerina-guides-secure-restful-service",
     path:"/"
 }
-
 @kubernetes:Service {
     serviceType:"NodePort",
     name:"ballerina-guides-secure-restful-service"
 }
-
-@kubernetes:Deployment {
-    image:"ballerina.guides.io/secure_restful_service:v1.0",
-    name:"ballerina-guides-secure-restful-service"
-}
-
-endpoint http:Listener listener {
-    port:9090
+endpoint http:SecureListener listener {
+    port:9090,
+    authProviders:[basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -449,8 +465,17 @@ endpoint http:Listener listener {
 map<json> ordersMap;
 
 @Description {value:"RESTful service."}
-@http:ServiceConfig {basePath:"/ordermgt"}
-service<http:Service> order_mgt bind listener {    
+@http:ServiceConfig {
+    basePath:"/ordermgt"
+}
+@kubernetes:ConfigMap {
+    ballerinaConf:"/home/securing-restful-services-with-basic-auth/guide/secure_restful_service/ballerina.conf"
+}
+@kubernetes:Deployment {
+    image:"ballerina.guides.io/secure_restful_service:v1.0",
+    name:"ballerina-guides-secure-restful-service"
+}
+service<http:Service> order_mgt bind listener {   
 ```
 
 - Here we have used ``  @kubernetes:Deployment `` to specify the docker image name which will be created as part of building this service.
@@ -493,7 +518,7 @@ This will also create the corresponding docker image and the Kubernetes artifact
 Node Port:
 
 ```
-curl -v -X POST -d \
+curl -v -X POST -u counter:password -d \
 '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
 "http://<Minikube_host_IP>:<Node_Port>/ordermgt/order" -H "Content-Type:application/json"  
 ```
@@ -508,14 +533,14 @@ Add `/etc/hosts` entry to match hostname.
 Access the service
 
 ```
-curl -v -X POST -d \
+curl -v -X POST -u counter:password -d \
 '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
 "http://ballerina.guides.io/ordermgt/order" -H "Content-Type:application/json"
 ```
 
 ## Observability
 Ballerina is by default observable. Meaning you can easily observe your services, resources, etc.
-However, observability is disabled by default via configuration. Observability can be enabled by adding following configurations to `ballerina.conf` file in `secure-restful-service/src/`.
+However, observability is disabled by default via configuration. Observability can be enabled by adding following configurations to `ballerina.conf` file in `securing-restful-services-with-basic-auth/guide/`.
 
 ```ballerina
 [observability]
@@ -529,9 +554,29 @@ enabled=true
 enabled=true
 ```
 
+NOTE: The above configuration is the minimum configuration needed to enable tracing and metrics. With these configurations default values are load as the other configuration parameters of metrics and tracing.
+
 ### Tracing
 You can monitor ballerina services using in built tracing capabilities of Ballerina. We'll use [Jaeger](https://github.com/jaegertracing/jaeger) as the distributed tracing system.
 Follow the following steps to use tracing with Ballerina.
+
+- You can add the following configurations for tracing. Note that these configurations are optional if you already have the basic configuration in `ballerina.conf` as described above.
+```
+   [b7a.observability]
+
+   [b7a.observability.tracing]
+   enabled=true
+   name="jaeger"
+
+   [b7a.observability.tracing.jaeger]
+   reporter.hostname="localhost"
+   reporter.port=5775
+   sampler.param=1.0
+   sampler.type="const"
+   reporter.flush.interval.ms=2000
+   reporter.log.spans=true
+   reporter.max.buffer.spans=1000
+```
 
 - Run Jaeger docker image using the following command
 ```bash
@@ -539,7 +584,7 @@ Follow the following steps to use tracing with Ballerina.
    -p14268:14268 jaegertracing/all- in-one:latest
 ```
 
-- Navigate to `secure-restful-service/src/` and run the 'secure_restful_service' program using following command
+- Navigate to `securing-restful-services-with-basic-auth/guide/` and run the 'secure_restful_service' program using following command
 ```
    $ballerina run secure_restful_service/
 ```
@@ -549,47 +594,45 @@ Follow the following steps to use tracing with Ballerina.
    http://localhost:16686
 ```
 
-- You should see the Jaeger UI as follows
-
-   ![Jaeger UI](images/tracing-screenshot.png "Tracing Screenshot")
-
-
 ### Metrics
 Metrics and alarts are built-in with ballerina. We will use Prometheus as the monitoring tool.
 Follow the below steps to set up Prometheus and view metrics for Ballerina restful service.
 
-- Set the below configurations in the `ballerina.conf` file in the project root, in addition to the user related configuration.
+- You can add the following configurations for metrics. Note that these configurations are optional if you already have the basic configuration in `ballerina.conf` as described under `Observability` section.
+
 ```ballerina
-   [observability.metrics.prometheus]
-   # Flag to enable Prometheus HTTP endpoint
+   [b7a.observability.metrics]
    enabled=true
-   # Prometheus HTTP endpoint port. Metrics will be exposed in /metrics context.
-   # Eg: http://localhost:9797/metrics
-   port=9797
-   # Flag to indicate whether meter descriptions should be sent to Prometheus.
+   provider="micrometer"
+
+   [b7a.observability.metrics.micrometer]
+   registry.name="prometheus"
+
+   [b7a.observability.metrics.prometheus]
+   port=9700
+   hostname="0.0.0.0"
    descriptions=false
-   # The step size to use in computing windowed statistics like max. The default is 1 minute.
    step="PT1M"
 ```
 
-- Create a file `prometheus.yml` inside `/etc/` location. Add the below configurations to the `prometheus.yml` file.
+- Create a file `prometheus.yml` inside `/tmp/` location. Add the below configurations to the `prometheus.yml` file.
 ```
    global:
-   scrape_interval:     15s
-   evaluation_interval: 15s
+     scrape_interval:     15s
+     evaluation_interval: 15s
 
    scrape_configs:
-    - job_name: 'prometheus'
-
-   static_configs:
-        - targets: ['172.17.0.1:9797']
+     - job_name: prometheus
+       static_configs:
+         - targets: ['172.17.0.1:9797']
 ```
 
    NOTE : Replace `172.17.0.1` if your local docker IP differs from `172.17.0.1`
 
 - Run the Prometheus docker image using the following command
 ```
-   docker run -p 19090:9090 -v /tmp/prometheus.yml prom/prometheus
+   $ docker run -p 19090:9090 -v /tmp/prometheus.yml:/etc/prometheus/prometheus.yml \
+   prom/prometheus
 ```
 
 - You can access Prometheus at the following URL
@@ -597,16 +640,24 @@ Follow the below steps to set up Prometheus and view metrics for Ballerina restf
    http://localhost:19090/
 ```
 
-- Promethues UI with metrics for secure_restful_service
-
-   ![promethues screenshot](images/metrics-screenshot.png "Prometheus UI")
+NOTE:  Ballerina will by default have following metrics for HTTP server connector. You can enter following expression in Prometheus UI
+-  http_requests_total
+-  http_response_time
 
 ### Logging
 Ballerina has a log package for logging to the console. You can import ballerina/log package and start logging. The following section will describe how to search, analyze, and visualize logs in real time using Elastic Stack.
 
+- Start the Ballerina Service with the following command from `securing-restful-services-with-basic-auth/guide`
+```
+   $ nohup ballerina run secure_restful_service/ &>> ballerina.log&
+```
+   NOTE: This will write the console log to the `ballerina.log` file in the `securing-restful-services-with-basic-auth/guide` directory
+
+- Start Elasticsearch using the following command
+
 - Start Elasticsearch using the following command
 ```
-   docker run -p 9200:9200 -p 9300:9300 -it -h elasticsearch --name
+   $ docker run -p 9200:9200 -p 9300:9300 -it -h elasticsearch --name \
    elasticsearch docker.elastic.co/elasticsearch/elasticsearch:6.2.2
 ```
 
@@ -614,73 +665,72 @@ Ballerina has a log package for logging to the console. You can import ballerina
 
 - Start Kibana plugin for data visualization with Elasticsearch
 ```
-   docker run -p 5601:5601 -h kibana --name kibana --link elasticsearch:elasticsearch
-   docker.elastic.co/kibana/kibana:6.2.2     
+   $ docker run -p 5601:5601 -h kibana --name kibana --link \
+   elasticsearch:elasticsearch docker.elastic.co/kibana/kibana:6.2.2     
 ```
 
 - Configure logstash to format the ballerina logs
-   i) Create a file named `logstash.conf` with the following content
- ```
-      input {  
-       beats {
-	       port => 5044
-	      }  
-      }
 
-      filter {  
-       grok  {  
-	       match => {
-                  "message" => "%{TIMESTAMP_ISO8601:date}%{SPACE}%{WORD:logLevel}%{SPACE}
-                  \[%{GREEDYDATA:package}\]%{SPACE}\-%{SPACE}%{GREEDYDATA:logMessage}"
-                 }  
-       }  
-      }   
-
-      output {  
-       elasticsearch {  
-    	   hosts => "elasticsearch:9200"  
-    	   index => "store"  
-        document_type => "store_logs"  
-	      }  
-      }  
+i) Create a file named `logstash.conf` with the following content
 ```
-     ii) Save the above `logstash.conf` inside a directory named as `{SAMPLE_ROOT_DIRECTORY}\pipeline`
+input {  
+ beats{
+     port => 5044
+ }  
+}
 
-     iii) Start the logstash container, replace the {SAMPLE_ROOT_DIRECTORY} with your directory name
+filter {  
+ grok{  
+     match => {
+	 "message" => "%{TIMESTAMP_ISO8601:date}%{SPACE}%{WORD:logLevel}%{SPACE}
+	 \[%{GREEDYDATA:package}\]%{SPACE}\-%{SPACE}%{GREEDYDATA:logMessage}"
+     }  
+ }  
+}   
+
+output {  
+ elasticsearch{  
+     hosts => "elasticsearch:9200"  
+     index => "store"  
+     document_type => "store_logs"  
+ }  
+}  
+```
+
+ii) Save the above `logstash.conf` inside a directory named as `{SAMPLE_ROOT}\pipeline`
+
+iii) Start the logstash container, replace the {SAMPLE_ROOT} with your directory name
 
 ```
-        docker run -h logstash --name logstash --link elasticsearch:elasticsearch -it --rm
-        -v ~/{SAMPLE_ROOT_DIRECTIRY}/pipeline:/usr/share/logstash/pipeline/
-        -p 5044:5044 docker.elastic.co/logstash/logstash:6.2.2
+$ docker run -h logstash --name logstash --link elasticsearch:elasticsearch \
+-it --rm -v ~/{SAMPLE_ROOT}/pipeline:/usr/share/logstash/pipeline/ \
+-p 5044:5044 docker.elastic.co/logstash/logstash:6.2.2
 ```
 
  - Configure filebeat to ship the ballerina logs
 
-     i) Create a file named `filebeat.yml` with the following content
- ```
-       filebeat.prospectors:
-          - type: log
-       paths:
-          - /usr/share/filebeat/ballerina.log
-       output.logstash:
-            hosts: ["logstash:5044"]
- ```
-     ii) Save the above `filebeat.yml` inside a directory named as `{SAMPLE_ROOT_DIRECTORY}\filebeat`   
+i) Create a file named `filebeat.yml` with the following content
+```
+filebeat.prospectors:
+- type: log
+  paths:
+    - /usr/share/filebeat/ballerina.log
+output.logstash:
+  hosts: ["logstash:5044"]  
+```
+NOTE : Modify the ownership of filebeat.yml file using `$chmod go-w filebeat.yml`
 
+ii) Save the above `filebeat.yml` inside a directory named as `{SAMPLE_ROOT}\filebeat`   
 
-     iii) Start the logstash container, replace the {SAMPLE_ROOT_DIRECTORY} with your directory name
+iii) Start the logstash container, replace the {SAMPLE_ROOT} with your directory name
 
- ```
-        docker run -v {SAMPLE_ROOT_DIRECTORY}/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
-        -v {SAMPLE_ROOT_DIRECTORY}/src/secure_restful_service/ballerina.log:/usr/share/filebeat/ballerina.log
-	--link logstash:logstash docker.elastic.co/beats/filebeat:6.2.2
- ```
+```
+$ docker run -v {SAMPLE_ROOT}/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml \
+-v {SAMPLE_ROOT}/guide.restful_service/restful_service/ballerina.log:/usr/share\
+/filebeat/ballerina.log --link logstash:logstash docker.elastic.co/beats/filebeat:6.2.2
+```
 
  - Access Kibana to visualize the logs using following URL
- ```
-     http://localhost:5601
- ```
-
- - Kibana log visualization for the restful service sample
-
-     ![logging screenshot](images/logging-screenshot.png "Kibana UI")
+```
+   http://localhost:5601
+```
