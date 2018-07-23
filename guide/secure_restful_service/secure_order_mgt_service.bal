@@ -62,7 +62,7 @@ service<http:Service> order_mgt bind listener {
         // Create response message.
         json payload = {status:"Order Created.", orderId:orderId};
         http:Response response;
-        response.setJsonPayload(payload);
+        response.setJsonPayload(untaint payload);
 
         // Set 201 Created status code in the response message.
         response.statusCode = 201;
@@ -100,7 +100,7 @@ service<http:Service> order_mgt bind listener {
 
         http:Response response;
         // Set the JSON payload to the outgoing response message to the client.
-        response.setJsonPayload(existingOrder);
+        response.setJsonPayload(untaint existingOrder);
         // Send response to the client.
         _ = client -> respond(response);
     }
@@ -121,7 +121,7 @@ service<http:Service> order_mgt bind listener {
 
         json payload = "Order : " + orderId + " removed.";
         // Set a generated payload with order status.
-        response.setJsonPayload(payload);
+        response.setJsonPayload(untaint payload);
 
         // Send response to the client.
         _ = client -> respond(response);
@@ -148,7 +148,7 @@ service<http:Service> order_mgt bind listener {
         }
 
         // Set the JSON payload in the outgoing response message.
-        response.setJsonPayload(payload);
+        response.setJsonPayload(untaint payload);
 
         // Send response to the client.
         _ = client -> respond(response);
