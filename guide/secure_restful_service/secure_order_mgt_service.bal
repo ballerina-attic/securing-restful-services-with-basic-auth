@@ -26,10 +26,11 @@ import ballerina/http;
 
 http:AuthProvider basicAuthProvider = {
     scheme: "basic",
-    authProvider: "config"
+    authStoreProvider: "config"
 };
 endpoint http:SecureListener listener {
-    port: 9090
+    port: 9090,
+    authProviders: [basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
