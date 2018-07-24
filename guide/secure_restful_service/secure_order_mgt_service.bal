@@ -25,33 +25,33 @@ import ballerina/http;
 //}
 
 http:AuthProvider basicAuthProvider = {
-    scheme:"basic",
-    authProvider:"config"
+    scheme: "basic",
+    authProvider: "config"
 };
 endpoint http:SecureListener listener {
-    port:9090
+    port: 9090
 };
 
 // Order management is done using an in memory map.
 // Add some sample orders to 'orderMap' at startup.
 map<json> ordersMap;
 
-@Description {value:"RESTful service."}
+@Description { value: "RESTful service." }
 @http:ServiceConfig {
-    basePath:"/ordermgt",
+    basePath: "/ordermgt",
     authConfig: {
         authentication: { enabled: true }
     }
 }
 service<http:Service> order_mgt bind listener {
 
-    @Description {value:"Resource that handles the HTTP POST requests that are directed
-     to the path '/orders' to create a new Order."}
+    @Description { value: "Resource that handles the HTTP POST requests that are directed
+     to the path '/orders' to create a new Order." }
     @http:ResourceConfig {
-        methods:["POST"],
-        path:"/order",
-        authConfig:{
-            scopes:["add_order"]
+        methods: ["POST"],
+        path: "/order",
+        authConfig: {
+            scopes: ["add_order"]
         }
     }
     addOrder(endpoint client, http:Request req) {
@@ -60,7 +60,7 @@ service<http:Service> order_mgt bind listener {
         ordersMap[orderId] = orderReq;
 
         // Create response message.
-        json payload = {status:"Order Created.", orderId:orderId};
+        json payload = { status: "Order Created.", orderId: orderId };
         http:Response response;
         response.setJsonPayload(untaint payload);
 
@@ -71,16 +71,16 @@ service<http:Service> order_mgt bind listener {
         response.setHeader("Location", "http://localhost:9090/ordermgt/order/" + orderId);
 
         // Send response to the client.
-        _ = client -> respond(response);
+        _ = client->respond(response);
     }
 
-    @Description {value:"Resource that handles the HTTP PUT requests that are directed
-    to the path '/orders' to update an existing Order."}
+    @Description { value: "Resource that handles the HTTP PUT requests that are directed
+    to the path '/orders' to update an existing Order." }
     @http:ResourceConfig {
-        methods:["PUT"],
-        path:"/order/{orderId}",
-        authConfig:{
-            scopes:["update_order"]
+        methods: ["PUT"],
+        path: "/order/{orderId}",
+        authConfig: {
+            scopes: ["update_order"]
         }
     }
     updateOrder(endpoint client, http:Request req, string orderId) {
@@ -102,16 +102,16 @@ service<http:Service> order_mgt bind listener {
         // Set the JSON payload to the outgoing response message to the client.
         response.setJsonPayload(untaint existingOrder);
         // Send response to the client.
-        _ = client -> respond(response);
+        _ = client->respond(response);
     }
 
-    @Description {value:"Resource that handles the HTTP DELETE requests, which are
-    directed to the path '/orders/<orderId>' to delete an existing Order."}
+    @Description { value: "Resource that handles the HTTP DELETE requests, which are
+    directed to the path '/orders/<orderId>' to delete an existing Order." }
     @http:ResourceConfig {
-        methods:["DELETE"],
-        path:"/order/{orderId}",
-        authConfig:{
-            scopes:["cancel_order"]
+        methods: ["DELETE"],
+        path: "/order/{orderId}",
+        authConfig: {
+            scopes: ["cancel_order"]
         }
     }
     cancelOrder(endpoint client, http:Request req, string orderId) {
@@ -124,15 +124,15 @@ service<http:Service> order_mgt bind listener {
         response.setJsonPayload(untaint payload);
 
         // Send response to the client.
-        _ = client -> respond(response);
+        _ = client->respond(response);
     }
 
-    @Description {value:"Resource that handles the HTTP GET requests that are directed
-    to a specific order using path '/orders/<orderID>'"}
+    @Description { value: "Resource that handles the HTTP GET requests that are directed
+    to a specific order using path '/orders/<orderID>'" }
     @http:ResourceConfig {
-        methods:["GET"],
-        path:"/order/{orderId}",
-        authConfig:{
+        methods: ["GET"],
+        path: "/order/{orderId}",
+        authConfig: {
             authentication: { enabled: false }
         }
     }
@@ -151,6 +151,6 @@ service<http:Service> order_mgt bind listener {
         response.setJsonPayload(untaint payload);
 
         // Send response to the client.
-        _ = client -> respond(response);
+        _ = client->respond(response);
     }
 }
