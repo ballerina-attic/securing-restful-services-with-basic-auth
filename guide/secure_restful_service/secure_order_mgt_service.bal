@@ -1,6 +1,4 @@
 import ballerina/http;
-import ballerinax/docker;
-import ballerinax/kubernetes;
 
 //@docker:Config {
 //    registry:"ballerina.guides.io",
@@ -31,8 +29,7 @@ http:AuthProvider basicAuthProvider = {
     authProvider:"config"
 };
 endpoint http:SecureListener listener {
-    port:9090,
-    authProviders:[basicAuthProvider]
+    port:9090
 };
 
 // Order management is done using an in memory map.
@@ -41,7 +38,10 @@ map<json> ordersMap;
 
 @Description {value:"RESTful service."}
 @http:ServiceConfig {
-    basePath:"/ordermgt"
+    basePath:"/ordermgt",
+    authConfig: {
+        authentication: { enabled: true }
+    }
 }
 service<http:Service> order_mgt bind listener {
 

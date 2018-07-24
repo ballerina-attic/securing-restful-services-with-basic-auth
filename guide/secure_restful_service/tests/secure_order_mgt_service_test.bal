@@ -1,12 +1,6 @@
 import ballerina/test;
 import ballerina/http;
 
-@test:BeforeSuite
-function beforeFunc() {
-    // Start the 'order_mgt' service before running the test.
-    _ = test:startServices("secure_restful_service");
-}
-
 endpoint http:Client clientEPUnauthenticated {
     url:"http://localhost:9090/ordermgt"
 };
@@ -38,8 +32,7 @@ function testResourceAddOrderUnauthenticated() {
         msg = "addOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload,
-        "request failed: Authentication failure", msg = "Response mismatch!");
+    test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
 }
 
 
@@ -60,8 +53,7 @@ function testResourceUpdateOrderUnauthenticated() {
         msg = "updateOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload,
-        "request failed: Authentication failure", msg = "Response mismatch!");
+    test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
 }
 
 @test:Config {
@@ -95,8 +87,7 @@ function testResourceCancelOrderUnauthenticated() {
         msg = "cancelOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload,
-        "request failed: Authentication failure", msg = "Response mismatch!");
+    test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
 }
 
 
@@ -138,8 +129,7 @@ function testResourceUpdateOrderWithCounterUser() {
         msg = "updateOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload,
-        "request failed: Authorization failure", msg = "Response mismatch!");
+    test:assertEquals(resPayload, "Authorization failure", msg = "Response mismatch!");
 }
 
 @test:Config {
@@ -175,8 +165,7 @@ function testResourceCancelOrderWithCounterUser() {
         msg = "cancelOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload,
-        "request failed: Authorization failure", msg = "Response mismatch!");
+    test:assertEquals(resPayload, "Authorization failure", msg = "Response mismatch!");
 }
 
 // Admin user invocations
@@ -255,12 +244,5 @@ function testResourceCancelOrderWithAdminUser() {
         msg = "cancelOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(), "Order : 100502 removed.",
-        msg = "Response mismatch!");
-}
-
-@test:AfterSuite
-function afterFunc() {
-    // Stop the 'order_mgt' service after running the test.
-    test:stopServices("secure_restful_service");
+    test:assertEquals(resPayload.toString(), "Order : 100502 removed.", msg = "Response mismatch!");
 }
