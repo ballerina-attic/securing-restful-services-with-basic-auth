@@ -63,6 +63,9 @@ secure-restful-service
 ```ballerina
 import ballerina/http;
 
+@final string regexInt = "\\d+";
+@final string regexJson = "[a-zA-Z0-9.,{}:\" ]*";
+
 http:AuthProvider basicAuthProvider = {
     scheme: "basic",
     authProvider: "config"
@@ -96,12 +99,16 @@ service<http:Service> order_mgt bind listener {
     addOrder(endpoint client, http:Request req) {
         json orderReq = check req.getJsonPayload();
         string orderId = orderReq.Order.ID.toString();
+
+        // Get untainted value if `orderId` is a valid input
+        orderId = getUntaintedStringIfValid(orderId);
+
         ordersMap[orderId] = orderReq;
 
         // Create response message.
         json payload = { status: "Order Created.", orderId: orderId };
         http:Response response;
-        response.setJsonPayload(untaint payload);
+        response.setJsonPayload(payload);
 
         // Set 201 Created status code in the response message.
         response.statusCode = 201;
@@ -125,11 +132,19 @@ service<http:Service> order_mgt bind listener {
     updateOrder(endpoint client, http:Request req, string orderId) {
         json updatedOrder = check req.getJsonPayload();
 
+        // Get untainted value if `orderId` is a valid input
+        orderId = getUntaintedStringIfValid(orderId);
+
         // Find the order that needs to be updated and retrieve it in JSON format.
         json existingOrder = ordersMap[orderId];
 
+        // Get untainted json value if it is a valid json
+        existingOrder = getUntaintedJsonIfValid(existingOrder);
+        updatedOrder = getUntaintedJsonIfValid(updatedOrder);
+
         // Updating existing order with the attributes of the updated order.
         if (existingOrder != null) {
+
             existingOrder.Order.Name = updatedOrder.Order.Name;
             existingOrder.Order.Description = updatedOrder.Order.Description;
             ordersMap[orderId] = existingOrder;
@@ -139,7 +154,7 @@ service<http:Service> order_mgt bind listener {
 
         http:Response response;
         // Set the JSON payload to the outgoing response message to the client.
-        response.setJsonPayload(untaint existingOrder);
+        response.setJsonPayload(existingOrder);
         // Send response to the client.
         _ = client->respond(response);
     }
@@ -154,13 +169,16 @@ service<http:Service> order_mgt bind listener {
         }
     }
     cancelOrder(endpoint client, http:Request req, string orderId) {
-        http:Response response;
+        // Get untainted string value if `orderId` is a valid input
+        orderId = getUntaintedStringIfValid(orderId);
+
         // Remove the requested order from the map.
         _ = ordersMap.remove(orderId);
 
+        http:Response response;
         json payload = "Order : " + orderId + " removed.";
         // Set a generated payload with order status.
-        response.setJsonPayload(untaint payload);
+        response.setJsonPayload(payload);
 
         // Send response to the client.
         _ = client->respond(response);
@@ -176,6 +194,9 @@ service<http:Service> order_mgt bind listener {
         }
     }
     findOrder(endpoint client, http:Request req, string orderId) {
+        // Get untainted string value if `orderId` is a valid input
+        orderId = getUntaintedStringIfValid(orderId);
+
         // Find the requested order from the map and retrieve it in JSON format.
         http:Response response;
         json payload;
@@ -187,13 +208,33 @@ service<http:Service> order_mgt bind listener {
         }
 
         // Set the JSON payload in the outgoing response message.
-        response.setJsonPayload(untaint payload);
+        response.setJsonPayload(payload);
 
         // Send response to the client.
         _ = client->respond(response);
     }
 }
 
+function getUntaintedStringIfValid(string input) returns @untainted string {
+    boolean isValid = check input.matches(regexInt);
+    if (isValid) {
+        return input;
+    } else {
+        error err = { message: "Validation error: Input '" + input + "' should be valid." };
+        throw err;
+    }
+}
+
+function getUntaintedJsonIfValid(json input) returns @untainted json {
+    string inputStr = input.toString();
+    boolean isValid = check inputStr.matches(regexJson);
+    if (isValid) {
+        return input;
+    } else {
+        error err = { message: "Validation error: Input payload '" + inputStr + "' should be valid." };
+        throw err;
+    }
+}
 ```
 - Ballerina uses 'scope' as the way of expressing authorization. Multiple scopes can be assigned to a user, and scopes can then be validated while enforcing authorization. In order to express that certain service or resources require a scope, we have used the `scopes` annotation attribute. According to the `authConfig` of the service, in order to invoke `addOrder` function, the user should have 'add_order' scope, whereas to invoke `updateOrder` and `cancelOrder` user should have 'update_order' and 'cancel_order' scopes respectively.
 
