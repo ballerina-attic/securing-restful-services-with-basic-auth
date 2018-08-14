@@ -70,7 +70,7 @@ function testResourceFindOrderUnauthenticated() {
         msg = "findOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(), "Order : 100500 cannot be found.", msg = "Response mismatch!");
+    test:assertEquals(resPayload.toString(), "{\"status\":\"Order : 100500 cannot be found.\"}", msg = "Response mismatch!");
 }
 
 @test:Config {
@@ -109,7 +109,7 @@ function testResourceAddOrderWithCounterUser() {
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
     test:assertEquals(resPayload.toString(),
-        "{\"status\":\"Order Created.\",\"orderId\":\"100501\"}", msg = "Response mismatch!");
+        "{\"status\":\"Order Created.\", \"orderId\":\"100501\"}", msg = "Response mismatch!");
 }
 
 @test:Config {
@@ -147,7 +147,7 @@ function testResourceFindOrderWithCounterUser() {
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
     test:assertEquals(resPayload.toString(),
-        "{\"Order\":{\"ID\":\"100501\",\"Name\":\"XYZ\",\"Description\":\"Sample order.\"}}",
+        "{\"Order\":{\"ID\":\"100501\", \"Name\":\"XYZ\", \"Description\":\"Sample order.\"}}",
         msg = "Response mismatch!");
 }
 
@@ -186,7 +186,7 @@ function testResourceAddOrderWithAdminUser() {
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
     test:assertEquals(resPayload.toString(),
-        "{\"status\":\"Order Created.\",\"orderId\":\"100502\"}", msg = "Response mismatch!");
+        "{\"status\":\"Order Created.\", \"orderId\":\"100502\"}", msg = "Response mismatch!");
 }
 
 @test:Config {
@@ -207,7 +207,7 @@ function testResourceUpdateOrderWithAdminUser() {
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
     test:assertEquals(resPayload.toString(),
-        "{\"Order\":{\"ID\":\"100502\",\"Name\":\"XYZ\",\"Description\":\"Updated order.\"}}",
+        "{\"Order\":{\"ID\":\"100502\", \"Name\":\"XYZ\", \"Description\":\"Updated order.\"}}",
         msg = "Response mismatch!");
 }
 
@@ -226,7 +226,7 @@ function testResourceFindOrderWithAdminUser() {
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
     test:assertEquals(resPayload.toString(),
-        "{\"Order\":{\"ID\":\"100502\",\"Name\":\"XYZ\",\"Description\":\"Updated order.\"}}",
+        "{\"Order\":{\"ID\":\"100502\", \"Name\":\"XYZ\", \"Description\":\"Updated order.\"}}",
         msg = "Response mismatch!");
 }
 
@@ -244,5 +244,5 @@ function testResourceCancelOrderWithAdminUser() {
         msg = "cancelOrder resource did not respond with expected response code!");
     // Check whether the response is as expected.
     json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(), "Order : 100502 removed.", msg = "Response mismatch!");
+    test:assertEquals(resPayload.toString(), "{\"status\":\"Order : 100502 removed.\"}", msg = "Response mismatch!");
 }

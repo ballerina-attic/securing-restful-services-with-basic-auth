@@ -138,7 +138,7 @@ service<http:Service> order_mgt bind listener {
         _ = ordersMap.remove(orderId);
 
         http:Response response;
-        json payload = "Order : " + orderId + " removed.";
+        json payload = { status: "Order : " + orderId + " removed." };
         // Set a generated payload with order status.
         response.setPayload(payload);
 
@@ -166,7 +166,7 @@ service<http:Service> order_mgt bind listener {
             payload = ordersMap[orderId];
         } else {
             response.statusCode = http:NOT_FOUND_404;
-            payload = "Order : " + orderId + " cannot be found.";
+            payload = { status: "Order : " + orderId + " cannot be found." };
         }
 
         // Set the JSON payload in the outgoing response message.
