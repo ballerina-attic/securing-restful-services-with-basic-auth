@@ -70,10 +70,10 @@ service<http:Service> order_mgt bind listener {
         // Create response message.
         json payload = { status: "Order Created.", orderId: orderId };
         http:Response response;
-        response.setJsonPayload(payload);
+        response.setPayload(payload);
 
         // Set 201 Created status code in the response message.
-        response.statusCode = 201;
+        response.statusCode = http:CREATED_201;
         // Set 'Location' header in the response message.
         // This can be used by the client to locate the newly added order.
         response.setHeader("Location", "http://localhost:9090/ordermgt/order/" + orderId);
@@ -116,7 +116,7 @@ service<http:Service> order_mgt bind listener {
 
         http:Response response;
         // Set the JSON payload to the outgoing response message to the client.
-        response.setJsonPayload(existingOrder);
+        response.setPayload(existingOrder);
         // Send response to the client.
         _ = client->respond(response);
     }
@@ -140,7 +140,7 @@ service<http:Service> order_mgt bind listener {
         http:Response response;
         json payload = "Order : " + orderId + " removed.";
         // Set a generated payload with order status.
-        response.setJsonPayload(payload);
+        response.setPayload(payload);
 
         // Send response to the client.
         _ = client->respond(response);
@@ -165,12 +165,12 @@ service<http:Service> order_mgt bind listener {
         if (ordersMap.hasKey(orderId)) {
             payload = ordersMap[orderId];
         } else {
-            response.statusCode = 404;
+            response.statusCode = http:NOT_FOUND_404;
             payload = "Order : " + orderId + " cannot be found.";
         }
 
         // Set the JSON payload in the outgoing response message.
-        response.setJsonPayload(payload);
+        response.setPayload(payload);
 
         // Send response to the client.
         _ = client->respond(response);
