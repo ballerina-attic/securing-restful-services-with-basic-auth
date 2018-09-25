@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ballerina-guides/securing-restful-services-with-basic-auth.svg?branch=master)](https://travis-ci.org/ballerina-guides/securing-restful-services-with-basic-auth)
+
 # Securing RESTful Services
 
 In this guide you will learn about building a RESTful web service that enforces authentication and authorization checks using Ballerina.
