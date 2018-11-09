@@ -72,8 +72,20 @@ http:AuthProvider basicAuthProvider = {
     scheme: "basic",
     authProvider: "config"
 };
-endpoint http:SecureListener listener {
-    port: 9090
+
+endpoint http:Listener listener {
+    port:9090,
+    secureSocket: {
+        keyStore: {
+            path: "${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            password: "ballerina"
+        },
+        trustStore: {
+            path: "${ballerina.home}/bre/security/ballerinaTruststore.p12",
+            password: "ballerina"
+        }
+    },
+    authProviders: [basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -291,9 +303,9 @@ ballerina: started HTTP/WS endpoint 0.0.0.0:9090
 **Create Order - Without authentication**
 
 ```
-curl -v -X POST -d \
+curl -kv -X POST -d \
 '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
-"http://localhost:9090/ordermgt/order" -H "Content-Type:application/json"
+"https://localhost:9090/ordermgt/order" -H "Content-Type:application/json"
 
 Output :  
 < HTTP/1.1 401 Unauthorized
@@ -308,9 +320,9 @@ Authentication failure
 **Create Order - Authenticating as 'counter' user**
 
 ```
-curl -v -X POST -u counter:password -d \
+curl -kv -X POST -u counter:password -d \
 '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
-"http://localhost:9090/ordermgt/order" -H "Content-Type:application/json"
+"https://localhost:9090/ordermgt/order" -H "Content-Type:application/json"
 
 Output :  
 < HTTP/1.1 201 Created
@@ -328,7 +340,7 @@ Output :
 Authentication is disabled for `findOrder` operation. Therefore, the following request will succeed.
 
 ```
-curl "http://localhost:9090/ordermgt/order/100500"
+curl -k "https://localhost:9090/ordermgt/order/100500"
 
 Output :
 {"Order":{"ID":"100500","Name":"XYZ","Description":"Sample order."}}
@@ -336,8 +348,8 @@ Output :
 
 **Update Order - Without authentication**
 ```
-curl -X PUT -d '{ "Order": {"Name": "XYZ", "Description": "Updated order."}}' \
-"http://localhost:9090/ordermgt/order/100500" -H "Content-Type:application/json"
+curl -k -X PUT -d '{ "Order": {"Name": "XYZ", "Description": "Updated order."}}' \
+"https://localhost:9090/ordermgt/order/100500" -H "Content-Type:application/json"
 
 Output:
 Authentication failure
@@ -348,8 +360,8 @@ Authentication failure
 Authorization check for `updateOrder` operation requires the 'update_order' scope. The 'counter' user only has 'add_order' scope. Therefore, the following request will fail.
 
 ```
-curl -X PUT -u counter:password -d '{ "Order": {"Name": "XYZ", "Description": "Updated order."}}' \
-"http://localhost:9090/ordermgt/order/100500" -H "Content-Type:application/json"
+curl -k -X PUT -u counter:password -d '{ "Order": {"Name": "XYZ", "Description": "Updated order."}}' \
+"https://localhost:9090/ordermgt/order/100500" -H "Content-Type:application/json"
 
 Output:
 Authorization failure
@@ -357,8 +369,8 @@ Authorization failure
 
 **Update Order - Authenticating as 'admin' user**
 ```
-curl -X PUT -u admin:password -d '{ "Order": {"Name": "XYZ", "Description": "Updated order."}}' \
-"http://localhost:9090/ordermgt/order/100500" -H "Content-Type:application/json"
+curl -k -X PUT -u admin:password -d '{ "Order": {"Name": "XYZ", "Description": "Updated order."}}' \
+"https://localhost:9090/ordermgt/order/100500" -H "Content-Type:application/json"
 
 Output:
 {"Order":{"ID":"100500","Name":"XYZ","Description":"Updated order."}}
@@ -366,7 +378,7 @@ Output:
 
 **Cancel Order - Authenticating as 'admin' user**
 ```
-curl -u admin:password -X DELETE "http://localhost:9090/ordermgt/order/100500"
+curl -k -u admin:password -X DELETE "https://localhost:9090/ordermgt/order/100500"
 
 Output:
 "Order : 100500 removed."
@@ -421,7 +433,18 @@ import ballerinax/docker;
 }
 @docker:Expose{}
 endpoint http:Listener listener {
-    port:9090
+    port:9090,
+    secureSocket: {
+        keyStore: {
+            path: "${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            password: "ballerina"
+        },
+        trustStore: {
+            path: "${ballerina.home}/bre/security/ballerinaTruststore.p12",
+            password: "ballerina"
+        }
+    },
+    authProviders: [basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -430,6 +453,14 @@ map<json> ordersMap;
 
 @Description {value:"RESTful service."}
 @http:ServiceConfig {basePath:"/ordermgt"}
+@docker:CopyFiles {
+    files:[
+        {   source:"ballerina.conf",
+            target:"/home/ballerina/conf/ballerina.conf",
+            isBallerinaConf:true
+        }
+    ]
+}
 service<http:Service> order_mgt bind listener {
 ```
 
@@ -455,8 +486,8 @@ This will also create the corresponding docker image using the docker annotation
 - You can access the service using the same curl commands that we've used above.
 
 ```
-   curl -v -X POST -d '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
-   "http://localhost:9090/ordermgt/order" -H "Content-Type:application/json"    
+   curl -kv -X POST -d '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
+   "https://localhost:9090/ordermgt/order" -H "Content-Type:application/json"
 ```
 
 
@@ -487,13 +518,28 @@ import ballerinax/kubernetes;
     name:"ballerina-guides-secure-restful-service"
 }
 
+@kubernetes:ConfigMap {
+    ballerinaConf:"ballerina.conf"
+}
+
 @kubernetes:Deployment {
     image:"ballerina.guides.io/secure_restful_service:v1.0",
     name:"ballerina-guides-secure-restful-service"
 }
 
 endpoint http:Listener listener {
-    port:9090
+    port:9090,
+    secureSocket: {
+        keyStore: {
+            path: "${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            password: "ballerina"
+        },
+        trustStore: {
+            path: "${ballerina.home}/bre/security/ballerinaTruststore.p12",
+            password: "ballerina"
+        }
+    },
+    authProviders: [basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -516,7 +562,7 @@ This will also create the corresponding docker image and the Kubernetes artifact
    $ ballerina build secure_restful_service
 
    Run following command to deploy kubernetes artifacts:  
-   kubectl apply -f ./target/secure_restful_service/kubernetes
+   kubectl apply -f ./target/kubernetes/secure_restful_service
 ```
 
 - You can verify that the docker image that we specified in `` @kubernetes:Deployment `` is created, by using `` docker images ``.
@@ -524,10 +570,12 @@ This will also create the corresponding docker image and the Kubernetes artifact
 - Now you can create the Kubernetes deployment using:
 
 ```
-   $ kubectl apply -f ./target/secure_restful_service/kubernetes
+   $ kubectl apply -f ./target/kubernetes/secure_restful_service
 
+   configmap "order-mgt-ballerina-conf-config-map" created
    deployment.extensions "ballerina-guides-secure-restful-service" created
    ingress.extensions "ballerina-guides-secure-restful-service" created
+   secret "listener-secure-socket" created
    service "ballerina-guides-secure-restful-service" created
 ```
 
@@ -545,9 +593,9 @@ This will also create the corresponding docker image and the Kubernetes artifact
 Node Port:
 
 ```
-curl -v -X POST -d \
+curl -kv -X POST -d \
 '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
-"http://<Minikube_host_IP>:<Node_Port>/ordermgt/order" -H "Content-Type:application/json"  
+"https://<Minikube_host_IP>:<Node_Port>/ordermgt/order" -H "Content-Type:application/json"
 ```
 
 Ingress:
@@ -560,9 +608,9 @@ Add `/etc/hosts` entry to match hostname.
 Access the service
 
 ```
-curl -v -X POST -d \
+curl -kv -X POST -d \
 '{ "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order."}}' \
-"http://ballerina.guides.io/ordermgt/order" -H "Content-Type:application/json"
+"https://ballerina.guides.io/ordermgt/order" -H "Content-Type:application/json"
 ```
 
 ## Observability
