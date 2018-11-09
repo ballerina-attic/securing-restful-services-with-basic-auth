@@ -1,12 +1,30 @@
-import ballerina/http;
-
-//@docker:Config {
-//    registry:"ballerina.guides.io",
-//    name:"secure_restful_service",
-//    tag:"v1.0"
-//}
+// Copyright (c) 2018 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 //
-//@docker:Expose{}
+// WSO2 Inc. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+import ballerina/http;
+//import ballerinax/docker;
+//import ballerinax/kubernetes;
+
+@final string regexInt = "\\d+";
+@final string regexJson = "[a-zA-Z0-9.,{}:\" ]*";
+
+http:AuthProvider basicAuthProvider = {
+    scheme: "basic",
+    authStoreProvider: "config"
+};
 
 //@kubernetes:Ingress {
 //    hostname:"ballerina.guides.io",
@@ -19,20 +37,25 @@ import ballerina/http;
 //    name:"ballerina-guides-secure-restful-service"
 //}
 //
-//@kubernetes:Deployment {
-//    image:"ballerina.guides.io/secure_restful_service:v1.0",
-//    name:"ballerina-guides-secure-restful-service"
+//@docker:Config {
+//    registry:"ballerina.guides.io",
+//    name:"secure_restful_service",
+//    tag:"v1.0"
 //}
-
-@final string regexInt = "\\d+";
-@final string regexJson = "[a-zA-Z0-9.,{}:\" ]*";
-
-http:AuthProvider basicAuthProvider = {
-    scheme: "basic",
-    authStoreProvider: "config"
-};
-endpoint http:SecureListener listener {
+//
+//@docker:Expose{}
+endpoint http:Listener listener {
     port: 9090,
+    secureSocket: {
+        keyStore: {
+            path: "${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            password: "ballerina"
+        },
+        trustStore: {
+            path: "${ballerina.home}/bre/security/ballerinaTruststore.p12",
+            password: "ballerina"
+        }
+    },
     authProviders: [basicAuthProvider]
 };
 
@@ -47,6 +70,22 @@ map<json> ordersMap;
         authentication: { enabled: true }
     }
 }
+//@docker:CopyFiles {
+//    files:[
+//        {   source:"ballerina.conf",
+//            target:"/home/ballerina/conf/ballerina.conf",
+//            isBallerinaConf:true
+//        }
+//    ]
+//}
+//@kubernetes:ConfigMap {
+//    ballerinaConf:"ballerina.conf"
+//}
+//
+//@kubernetes:Deployment {
+//    image:"ballerina.guides.io/secure_restful_service:v1.0",
+//    name:"ballerina-guides-secure-restful-service"
+//}
 service<http:Service> order_mgt bind listener {
 
     @Description { value: "Resource that handles the HTTP POST requests that are directed
