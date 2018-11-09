@@ -72,8 +72,20 @@ http:AuthProvider basicAuthProvider = {
     scheme: "basic",
     authProvider: "config"
 };
+
 endpoint http:Listener listener {
-    port: 9090
+    port:9090,
+    secureSocket: {
+        keyStore: {
+            path: "${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            password: "ballerina"
+        },
+        trustStore: {
+            path: "${ballerina.home}/bre/security/ballerinaTruststore.p12",
+            password: "ballerina"
+        }
+    },
+    authProviders: [basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -421,7 +433,18 @@ import ballerinax/docker;
 }
 @docker:Expose{}
 endpoint http:Listener listener {
-    port:9090
+    port:9090,
+    secureSocket: {
+        keyStore: {
+            path: "${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            password: "ballerina"
+        },
+        trustStore: {
+            path: "${ballerina.home}/bre/security/ballerinaTruststore.p12",
+            password: "ballerina"
+        }
+    },
+    authProviders: [basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
@@ -505,7 +528,18 @@ import ballerinax/kubernetes;
 }
 
 endpoint http:Listener listener {
-    port:9090
+    port:9090,
+    secureSocket: {
+        keyStore: {
+            path: "${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            password: "ballerina"
+        },
+        trustStore: {
+            path: "${ballerina.home}/bre/security/ballerinaTruststore.p12",
+            password: "ballerina"
+        }
+    },
+    authProviders: [basicAuthProvider]
 };
 
 // Order management is done using an in memory map.
