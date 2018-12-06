@@ -17,19 +17,15 @@
 import ballerina/test;
 import ballerina/http;
 
-endpoint http:Client clientEPUnauthenticated {
-    url: "https://localhost:9090/ordermgt"
-};
+http:Client clientEPUnauthenticated = new("https://localhost:9090/ordermgt");
 
-endpoint http:Client clientEPCounter {
-    url: "https://localhost:9090/ordermgt",
+http:Client clientEPCounter = new("https://localhost:9090/ordermgt", config = {
     auth: { scheme: http:BASIC_AUTH, username: "counter", password: "password" }
-};
+});
 
-endpoint http:Client clientEPAdmin {
-    url: "https://localhost:9090/ordermgt",
+http:Client clientEPAdmin = new("https://localhost:9090/ordermgt", config = {
     auth: { scheme: http:BASIC_AUTH, username: "admin", password: "password" }
-};
+});
 
 // Unauthenticated invocations
 
@@ -37,18 +33,26 @@ endpoint http:Client clientEPAdmin {
 // Function to test POST resource 'addOrder' with no authentication.
 function testResourceAddOrderUnauthenticated() {
     // Initialize the empty http request.
-    http:Request request;
+    http:Request request = new;
     // Construct the request payload.
     json payload = { "Order": { "ID": "100500", "Name": "XYZ", "Description": "Sample order." } };
     request.setPayload(payload);
     // Send 'POST' request and obtain the response.
-    http:Response response = check clientEPUnauthenticated->post("/order", request);
-    // Expected response code is 401.
-    test:assertEquals(response.statusCode, http:UNAUTHORIZED_401,
-        msg = "addOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
+    var response = clientEPUnauthenticated->post("/order", request);
+    if (response is http:Response) {
+        // Expected response code is 401.
+        test:assertEquals(response.statusCode, http:UNAUTHORIZED_401,
+            msg = "addOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getTextPayload();
+        if (resPayload is string) {
+            test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the text payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 
@@ -58,18 +62,26 @@ function testResourceAddOrderUnauthenticated() {
 // Function to test PUT resource 'updateOrder' with no authentication.
 function testResourceUpdateOrderUnauthenticated() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Construct the request payload.
     json payload = { "Order": { "Name": "XYZ", "Description": "Updated order." } };
     request.setPayload(payload);
     // Send 'PUT' request and obtain the response.
-    http:Response response = check clientEPUnauthenticated->put("/order/100500", request);
-    // Expected response code is 401.
-    test:assertEquals(response.statusCode, http:UNAUTHORIZED_401,
-        msg = "updateOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
+    var response = clientEPUnauthenticated->put("/order/100500", request);
+    if (response is http:Response) {
+        // Expected response code is 401.
+        test:assertEquals(response.statusCode, http:UNAUTHORIZED_401,
+            msg = "updateOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getTextPayload();
+        if (resPayload is string) {
+            test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the text payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -78,15 +90,24 @@ function testResourceUpdateOrderUnauthenticated() {
 // Function to test GET resource 'findOrder' with no authentication.
 function testResourceFindOrderUnauthenticated() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Send 'GET' request and obtain the response.
-    http:Response response = check clientEPUnauthenticated->get("/order/100500", message = request);
-    // Expected response code is 500.
-    test:assertEquals(response.statusCode, http:NOT_FOUND_404,
-        msg = "findOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(), "{\"status\":\"Order : 100500 cannot be found.\"}", msg = "Response mismatch!");
+    var response = clientEPUnauthenticated->get("/order/100500", message = request);
+    if (response is http:Response) {
+        // Expected response code is 500.
+        test:assertEquals(response.statusCode, http:NOT_FOUND_404,
+            msg = "findOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getJsonPayload();
+        if (resPayload is json) {
+            test:assertEquals(resPayload.toString(), "{\"status\":\"Order : 100500 cannot be found.\"}",
+                msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the json payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -95,15 +116,23 @@ function testResourceFindOrderUnauthenticated() {
 // Function to test DELETE resource 'cancelOrder' with no authentication.
 function testResourceCancelOrderUnauthenticated() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Send 'DELETE' request and obtain the response.
-    http:Response response = check clientEPUnauthenticated->delete("/order/100500", request);
-    // Expected response code is 401.
-    test:assertEquals(response.statusCode, http:UNAUTHORIZED_401,
-        msg = "cancelOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
+    var response = clientEPUnauthenticated->delete("/order/100500", request);
+    if (response is http:Response) {
+        // Expected response code is 401.
+        test:assertEquals(response.statusCode, http:UNAUTHORIZED_401,
+            msg = "cancelOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getTextPayload();
+        if (resPayload is string) {
+            test:assertEquals(resPayload, "Authentication failure", msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the text payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 
@@ -113,19 +142,27 @@ function testResourceCancelOrderUnauthenticated() {
 // Function to test POST resource 'addOrder' with counter user.
 function testResourceAddOrderWithCounterUser() {
     // Initialize the empty http request.
-    http:Request request;
+    http:Request request = new;
     // Construct the request payload.
     json payload = { "Order": { "ID": "100501", "Name": "XYZ", "Description": "Sample order." } };
     request.setPayload(payload);
     // Send 'POST' request and obtain the response.
-    http:Response response = check clientEPCounter->post("/order", request);
-    // Expected response code is 201.
-    test:assertEquals(response.statusCode, http:CREATED_201,
-        msg = "addOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(),
-        "{\"status\":\"Order Created.\", \"orderId\":\"100501\"}", msg = "Response mismatch!");
+    var response = clientEPCounter->post("/order", request);
+    if (response is http:Response) {
+        // Expected response code is 201.
+        test:assertEquals(response.statusCode, http:CREATED_201,
+            msg = "addOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getJsonPayload();
+        if (resPayload is json) {
+            test:assertEquals(resPayload.toString(),
+                "{\"status\":\"Order Created.\", \"orderId\":\"100501\"}", msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the json payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -134,18 +171,26 @@ function testResourceAddOrderWithCounterUser() {
 // Function to test PUT resource 'updateOrder' with counter user.
 function testResourceUpdateOrderWithCounterUser() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Construct the request payload.
     json payload = { "Order": { "Name": "XYZ", "Description": "Updated order." } };
     request.setPayload(payload);
     // Send 'PUT' request and obtain the response.
-    http:Response response = check clientEPCounter->put("/order/100501", request);
-    // Expected response code is 403.
-    test:assertEquals(response.statusCode, http:FORBIDDEN_403,
-        msg = "updateOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload, "Authorization failure", msg = "Response mismatch!");
+    var response = clientEPCounter->put("/order/100501", request);
+    if (response is http:Response) {
+        // Expected response code is 403.
+        test:assertEquals(response.statusCode, http:FORBIDDEN_403,
+            msg = "updateOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getTextPayload();
+        if (resPayload is string) {
+            test:assertEquals(resPayload, "Authorization failure", msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the text payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -154,17 +199,25 @@ function testResourceUpdateOrderWithCounterUser() {
 // Function to test GET resource 'findOrder' with counter user.
 function testResourceFindOrderWithCounterUser() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Send 'GET' request and obtain the response.
-    http:Response response = check clientEPCounter->get("/order/100501", message = request);
-    // Expected response code is 200.
-    test:assertEquals(response.statusCode, http:OK_200,
-        msg = "findOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(),
-        "{\"Order\":{\"ID\":\"100501\", \"Name\":\"XYZ\", \"Description\":\"Sample order.\"}}",
-        msg = "Response mismatch!");
+    var response = clientEPCounter->get("/order/100501", message = request);
+    if (response is http:Response) {
+        // Expected response code is 200.
+        test:assertEquals(response.statusCode, http:OK_200,
+            msg = "findOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getJsonPayload();
+        if (resPayload is json) {
+            test:assertEquals(resPayload.toString(),
+                "{\"Order\":{\"ID\":\"100501\", \"Name\":\"XYZ\", \"Description\":\"Sample order.\"}}",
+                msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the json payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -173,15 +226,23 @@ function testResourceFindOrderWithCounterUser() {
 // Function to test DELETE resource 'cancelOrder' with counter user.
 function testResourceCancelOrderWithCounterUser() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Send 'DELETE' request and obtain the response.
-    http:Response response = check clientEPCounter->delete("/order/100501", request);
-    // Expected response code is 403.
-    test:assertEquals(response.statusCode, http:FORBIDDEN_403,
-        msg = "cancelOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    string resPayload = check response.getTextPayload();
-    test:assertEquals(resPayload, "Authorization failure", msg = "Response mismatch!");
+    var response = clientEPCounter->delete("/order/100501", request);
+    if (response is http:Response) {
+        // Expected response code is 403.
+        test:assertEquals(response.statusCode, http:FORBIDDEN_403,
+            msg = "cancelOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getTextPayload();
+        if (resPayload is string) {
+            test:assertEquals(resPayload, "Authorization failure", msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the text payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 // Admin user invocations
@@ -190,19 +251,27 @@ function testResourceCancelOrderWithCounterUser() {
 // Function to test POST resource 'addOrder' with admin user.
 function testResourceAddOrderWithAdminUser() {
     // Initialize the empty http request.
-    http:Request request;
+    http:Request request = new;
     // Construct the request payload.
     json payload = { "Order": { "ID": "100502", "Name": "XYZ", "Description": "Sample order." } };
     request.setPayload(payload);
     // Send 'POST' request and obtain the response.
-    http:Response response = check clientEPAdmin->post("/order", request);
-    // Expected response code is 201.
-    test:assertEquals(response.statusCode, http:CREATED_201,
-        msg = "addOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(),
-        "{\"status\":\"Order Created.\", \"orderId\":\"100502\"}", msg = "Response mismatch!");
+    var response = clientEPAdmin->post("/order", request);
+    if (response is http:Response) {
+        // Expected response code is 201.
+        test:assertEquals(response.statusCode, http:CREATED_201,
+                            msg = "addOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getJsonPayload();
+        if (resPayload is json) {
+            test:assertEquals(resPayload.toString(),
+                "{\"status\":\"Order Created.\", \"orderId\":\"100502\"}", msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the json payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -211,20 +280,28 @@ function testResourceAddOrderWithAdminUser() {
 // Function to test PUT resource 'updateOrder' with admin user.
 function testResourceUpdateOrderWithAdminUser() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Construct the request payload.
     json payload = { "Order": { "Name": "XYZ", "Description": "Updated order." } };
     request.setJsonPayload(payload);
     // Send 'PUT' request and obtain the response.
-    http:Response response = check clientEPAdmin->put("/order/100502", request);
-    // Expected response code is 200.
-    test:assertEquals(response.statusCode, http:OK_200,
-        msg = "updateOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(),
-        "{\"Order\":{\"ID\":\"100502\", \"Name\":\"XYZ\", \"Description\":\"Updated order.\"}}",
-        msg = "Response mismatch!");
+    var response = clientEPAdmin->put("/order/100502", request);
+    if (response is http:Response) {
+        // Expected response code is 200.
+        test:assertEquals(response.statusCode, http:OK_200,
+            msg = "updateOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getJsonPayload();
+        if (resPayload is json) {
+            test:assertEquals(resPayload.toString(),
+                "{\"Order\":{\"ID\":\"100502\", \"Name\":\"XYZ\", \"Description\":\"Updated order.\"}}",
+                msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the json payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -235,15 +312,23 @@ function testResourceFindOrderWithAdminUser() {
     // Initialize empty http requests and responses.
     http:Request request;
     // Send 'GET' request and obtain the response.
-    http:Response response = check clientEPAdmin->get("/order/100502", message = request);
-    // Expected response code is 200.
-    test:assertEquals(response.statusCode, http:OK_200,
-        msg = "findOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(),
-        "{\"Order\":{\"ID\":\"100502\", \"Name\":\"XYZ\", \"Description\":\"Updated order.\"}}",
-        msg = "Response mismatch!");
+    var response = clientEPAdmin->get("/order/100502", message = request);
+    if (response is http:Response) {
+        // Expected response code is 200.
+        test:assertEquals(response.statusCode, http:OK_200,
+            msg = "findOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getJsonPayload();
+        if (resPayload is json) {
+            test:assertEquals(resPayload.toString(),
+                "{\"Order\":{\"ID\":\"100502\", \"Name\":\"XYZ\", \"Description\":\"Updated order.\"}}",
+                msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the json payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
 
 @test:Config {
@@ -252,13 +337,22 @@ function testResourceFindOrderWithAdminUser() {
 // Function to test DELETE resource 'cancelOrder' with admin user.
 function testResourceCancelOrderWithAdminUser() {
     // Initialize empty http requests and responses.
-    http:Request request;
+    http:Request request = new;
     // Send 'DELETE' request and obtain the response.
-    http:Response response = check clientEPAdmin->delete("/order/100502", request);
-    // Expected response code is 200.
-    test:assertEquals(response.statusCode, http:OK_200,
-        msg = "cancelOrder resource did not respond with expected response code!");
-    // Check whether the response is as expected.
-    json resPayload = check response.getJsonPayload();
-    test:assertEquals(resPayload.toString(), "{\"status\":\"Order : 100502 removed.\"}", msg = "Response mismatch!");
+    var response = clientEPAdmin->delete("/order/100502", request);
+    if (response is http:Response) {
+        // Expected response code is 200.
+        test:assertEquals(response.statusCode, http:OK_200,
+            msg = "cancelOrder resource did not respond with expected response code!");
+        // Check whether the response is as expected.
+        var resPayload = response.getJsonPayload();
+        if (resPayload is json) {
+            test:assertEquals(resPayload.toString(), "{\"status\":\"Order : 100502 removed.\"}",
+                msg = "Response mismatch!");
+        } else if (resPayload is error) {
+            test:assertFail(msg = "Failed to parse the json payload");
+        }
+    } else if (response is error) {
+        test:assertFail(msg = "Failed to call the endpoint");
+    }
 }
